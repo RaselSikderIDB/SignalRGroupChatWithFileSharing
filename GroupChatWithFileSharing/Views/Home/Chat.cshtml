@@ -1,0 +1,74 @@
+﻿
+@{
+    ViewBag.Title = "Chat";
+    Layout = null;
+}
+<head>
+    <title>SignalR Group Chat</title>
+    <style type="text/css">
+        .container {
+            background-color: #99CCFF;
+            border: thick solid #808080;
+            padding: 20px;
+            margin: 20px;
+        }
+    </style>
+</head>
+<h2 style="color:green">**GroupChatting**</h2>
+<div class="container">
+    <ul id="discussion"></ul>
+    <input type="text" id="message" /><br />
+    <input type="file" id="file" /><br /><br />
+    <input type="button" id="sendmessage" value="Send" />
+    <input type="hidden" id="displayname" />
+</div>
+
+<script src="~/Scripts/jquery-3.4.1.min.js"></script>
+<script src="~/Scripts/jquery.signalR-2.2.2.min.js"></script>
+<script src="~/signalr/hubs"></script>
+
+<script>
+    $(function () {
+        var chat = $.connection.chatHub;
+        chat.client.addNewMessageToPage = function (name, message, path) {
+            var a = '';
+            if (path !== null && path !== '') {
+                a = '<a href="' + path + '" target="_blank"><br><i>Download_Attach_File</i></a>';
+            }
+            $('#discussion').append('<li><strong>' + htmlEncode(name)
+                + '</strong>: ' + htmlEncode(message) + ' ' + a + '</li>');
+        };
+
+        $('#displayname').val(prompt('Enter your name:', ''));
+        $('#message').focus();
+
+        $.connection.hub.start().done(function () {
+            $('#sendmessage').click(function () {
+                var fileName = uploadFile();
+                var filePath = '';
+                if (fileName !== undefined) {
+                    filePath = '/MyFiles/' + fileName;
+                }
+                chat.server.send($('#displayname').val(), $('#message').val(), filePath);
+                $('#message').val('').focus();
+            });
+        });
+    });
+    function htmlEncode(value) {
+        var encodedValue = $('<div />').text(value).html();
+        return encodedValue;
+    }
+
+    function uploadFile() {
+        const files = document.getElementById('file').files;
+        if (files != null && files.length > 0) {
+            const url = "/Home/UploadFile";
+            const formData = new FormData();
+            formData.append('file', files[0]);
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', url);
+            xhr.send(formData);
+            return files[0].name;
+        }
+    }
+</script>
